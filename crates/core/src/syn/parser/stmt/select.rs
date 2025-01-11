@@ -5,7 +5,7 @@ use crate::{
 		order::{OrderList, Ordering},
 		statements::SelectStatement,
 		Explain, Field, Fields, Ident, Idioms, Limit, Order, Split, Splits, Start, Values, Version,
-		With,
+		With, Value, Param,
 	},
 	syn::{
 		parser::{
@@ -167,7 +167,9 @@ impl Parser<'_> {
 		let order = self.parse_order(ctx).await?;
 		let order_span = before.covers(self.last_span());
 		if !has_all {
-			Self::check_idiom(MissingKind::Order, fields, fields_span, &order.value, order_span)?;
+			if let Value::Idiom(idiom) = &order.value {
+				Self::check_idiom(MissingKind::Order, fields, fields_span, idiom, order_span)?;
+			}
 		}
 
 		let mut orders = vec![order];
@@ -176,13 +178,9 @@ impl Parser<'_> {
 			let order = self.parse_order(ctx).await?;
 			let order_span = before.covers(self.last_span());
 			if !has_all {
-				Self::check_idiom(
-					MissingKind::Order,
-					fields,
-					fields_span,
-					&order.value,
-					order_span,
-				)?;
+				if let Value::Idiom(idiom) = &order.value {
+					Self::check_idiom(MissingKind::Order, fields, fields_span, idiom, order_span)?;
+				}
 			}
 			orders.push(order)
 		}
@@ -191,22 +189,40 @@ impl Parser<'_> {
 	}
 
 	async fn parse_order(&mut self, ctx: &mut Stk) -> ParseResult<Order> {
-		let start = self.parse_basic_idiom(ctx).await?;
+		let value = match self.peek_kind() {
+			t!("$param") => {
+				let param = self.next_token_value::<Param>()?;
+				println!("ORDER BY field parameter: {:?}", param);
+				Value::Param(param)
+			}
+			_ => {
+				let idiom = self.parse_basic_idiom(ctx).await?;
+				println!("ORDER BY field idiom: {:?}", idiom);
+				Value::Idiom(idiom)
+			}
+		};
 		let collate = self.eat(t!("COLLATE"));
 		let numeric = self.eat(t!("NUMERIC"));
 		let direction = match self.peek_kind() {
 			t!("ASCENDING") => {
 				self.pop_peek();
-				true
+				Value::Bool(true)
 			}
 			t!("DESCENDING") => {
 				self.pop_peek();
-				false
+				Value::Bool(false)
 			}
-			_ => true,
+			t!("$param") => {
+				let param = self.next_token_value::<Param>()?;
+				println!("ORDER BY direction parameter: {:?}", param);
+				Value::Param(param)
+			}
+			_ => Value::Bool(true), // Default to ascending
 		};
+		println!("Final order: value={:?}, direction={:?}", value, direction);
+		
 		Ok(Order {
-			value: start,
+			value,
 			collate,
 			numeric,
 			direction,

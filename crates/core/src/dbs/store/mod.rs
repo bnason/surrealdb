@@ -10,6 +10,7 @@ use crate::dbs::plan::Explanation;
 use crate::err::Error;
 use crate::sql::order::OrderList;
 use crate::sql::value::Value;
+use crate::sql::order::Ordering;
 
 use rand::prelude::SliceRandom;
 use rand::{thread_rng, Rng};
@@ -243,20 +244,30 @@ impl MemoryOrdered {
 	}
 
 	#[cfg(not(target_arch = "wasm32"))]
-	pub(super) async fn sort(&mut self) -> Result<(), Error> {
+	pub(super) async fn sort(&mut self, orders: &Ordering) -> Result<(), Error> {
+		println!("MemoryOrdered::sort: {:?}", orders);
+		if let Ordering::Order(order_list) = orders {
+			self.orders = order_list.clone();
+		}
 		if self.result.is_none() {
+			println!("MemoryOrdered::sort: No result");
 			if !self.batch.is_empty() {
+				println!("MemoryOrdered::sort: Sending batch");
 				self.send_batch();
 			}
+			println!("MemoryOrdered::sort: Sending batch done");
 			let mut ordered = mem::take(&mut self.ordered);
 			let mut values = mem::take(&mut self.values);
 			let orders = self.orders.clone();
 			let result = spawn_blocking(move || {
+				println!("MemoryOrdered::sort: Sorting");
 				ordered.par_sort_unstable_by(|a, b| orders.compare(&values[*a], &values[*b]));
+				println!("MemoryOrdered::sort: Sorting done");
 				MemoryRandom::ordered_values_to_vec(&mut values, &ordered)
 			})
 			.await
 			.map_err(|e| Error::OrderingError(format!("{e}")))?;
+			println!("MemoryOrdered::sort: Sorting done");
 			self.result = Some(result);
 		}
 		Ok(())

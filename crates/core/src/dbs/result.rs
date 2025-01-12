@@ -93,7 +93,7 @@ impl Results {
 		match self {
 			#[cfg(storage)]
 			Self::File(f) => f.sort(orders),
-			Self::MemoryOrdered(c) => c.sort().await?,
+			Self::MemoryOrdered(c) => c.sort(orders).await?,
 			Self::AsyncMemoryOrdered(c) => {
 				c.finalize().await?;
 			}

@@ -11,6 +11,11 @@ impl Value {
 		collate: bool,
 		numeric: bool,
 	) -> Option<Ordering> {
+		println!("Value::compare: Comparing: {:?} and {:?}", self, other);
+		println!("Value::compare: Path: {:?}", path);
+		println!("Value::compare: Collate: {:?}", collate);
+		println!("Value::compare: Numeric: {:?}", numeric);
+
 		match path.first() {
 			// Get the current path part
 			Some(p) => match (self, other) {

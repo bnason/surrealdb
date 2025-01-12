@@ -8,6 +8,7 @@ use crate::sql::Part;
 use reblessive::tree::Stk;
 use revision::revisioned;
 use serde::{Deserialize, Serialize};
+use std::backtrace::Backtrace;
 use std::{cmp, fmt};
 use std::ops::Deref;
 
@@ -102,7 +103,9 @@ impl OrderList {
 				Value::Bool(false) => b.compare(a, &parts, order.collate, order.numeric),
 				_ => a.compare(b, &parts, order.collate, order.numeric),
 			};
-			println!("Ordering: {:?}", o);
+			// if o == None {
+			// 	println!("Compare backtrace: {}", Backtrace::force_capture());
+			// }
 			match o {
 				Some(cmp::Ordering::Greater) => return cmp::Ordering::Greater,
 				Some(cmp::Ordering::Equal) => continue,

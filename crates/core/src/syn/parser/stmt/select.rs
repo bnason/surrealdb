@@ -191,9 +191,13 @@ impl Parser<'_> {
 	async fn parse_order(&mut self, ctx: &mut Stk) -> ParseResult<Order> {
 		let value = match self.peek_kind() {
 			t!("$param") => {
-				let param = self.next_token_value::<Param>()?;
-				println!("ORDER BY field parameter: {:?}", param);
-				Value::Param(param)
+				// let param = self.next_token_value::<Param>()?;
+				// println!("ORDER BY field parameter: {:?}", param);
+				// Value::Param(param)
+				// ctx.run(|ctx| self.parse_value_field(ctx)).await?;
+				let v = self.parse_value_field(ctx).await?;
+				println!("ORDER BY field parameter: {:?}", v);
+				v
 			}
 			_ => {
 				let idiom = self.parse_basic_idiom(ctx).await?;
@@ -213,14 +217,18 @@ impl Parser<'_> {
 				Value::Bool(false)
 			}
 			t!("$param") => {
-				let param = self.next_token_value::<Param>()?;
-				println!("ORDER BY direction parameter: {:?}", param);
-				Value::Param(param)
+				// let param = self.next_token_value::<Param>()?;
+				// println!("ORDER BY direction parameter: {:?}", param);
+				// Value::Param(param)
+				// ctx.run(|ctx| self.parse_value_field(ctx)).await?;
+				let v = self.parse_value_field(ctx).await?;
+				println!("ORDER BY direction parameter: {:?}", v);
+				v
 			}
 			_ => Value::Bool(true), // Default to ascending
 		};
 		println!("Final order: value={:?}, direction={:?}", value, direction);
-		
+
 		Ok(Order {
 			value,
 			collate,

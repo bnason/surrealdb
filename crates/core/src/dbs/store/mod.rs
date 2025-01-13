@@ -247,7 +247,9 @@ impl MemoryOrdered {
 	pub(super) async fn sort(&mut self, orders: &Ordering) -> Result<(), Error> {
 		println!("MemoryOrdered::sort: {:?}", orders);
 		if let Ordering::Order(order_list) = orders {
+			println!("MemoryOrdered::sort: Cloning Orders: {:?}", orders);
 			self.orders = order_list.clone();
+			println!("MemoryOrdered::sort: Cloned Orders: {:?}", self.orders);
 		}
 		if self.result.is_none() {
 			println!("MemoryOrdered::sort: No result");

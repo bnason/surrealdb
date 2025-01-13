@@ -16,22 +16,38 @@ impl Value {
 		println!("Value::compare: Collate: {:?}", collate);
 		println!("Value::compare: Numeric: {:?}", numeric);
 
-		match path.first() {
+		let res = match path.first() {
 			// Get the current path part
 			Some(p) => match (self, other) {
 				// Current path part is an object
 				(Value::Object(a), Value::Object(b)) => match p {
 					Part::Field(f) => match (a.get(f.as_str()), b.get(f.as_str())) {
-						(Some(a), Some(b)) => a.compare(b, path.next(), collate, numeric),
-						(Some(_), None) => Some(Ordering::Greater),
-						(None, Some(_)) => Some(Ordering::Less),
-						(_, _) => Some(Ordering::Equal),
+						(Some(a), Some(b)) => {
+							println!("Value::compare: Comparing object some and some: {:?} and {:?}", a, b);
+							a.compare(b, path.next(), collate, numeric)
+						},
+						(Some(_), None) => {
+							println!("Value::compare: Comparing object some and none: {:?} and {:?}", a, b);
+							Some(Ordering::Greater)
+						},
+						(None, Some(_)) => {
+							println!("Value::compare: Comparing object none and some: {:?} and {:?}", a, b);
+							Some(Ordering::Less)
+						},
+						(_, _) => {
+							println!("Value::compare: Comparing object none and none: {:?} and {:?}", a, b);
+							Some(Ordering::Equal)
+						},
 					},
-					_ => None,
+					_ => {
+						println!("Value::compare: Comparing object default fields: {:?} and {:?}", a, b);
+						None
+					},
 				},
 				// Current path part is an array
 				(Value::Array(a), Value::Array(b)) => match p {
 					Part::All => {
+						println!("Value::compare: Comparing arrays: {:?} and {:?}", a, b);
 						for (a, b) in a.iter().zip(b.iter()) {
 							match a.compare(b, path.next(), collate, numeric) {
 								Some(Ordering::Equal) => continue,
@@ -39,31 +55,42 @@ impl Value {
 								o => return o,
 							}
 						}
+						println!("Value::compare: Comparing array lengths: {:?} and {:?}", a.len(), b.len());
 						match (a.len(), b.len()) {
 							(a, b) if a > b => Some(Ordering::Greater),
 							(a, b) if a < b => Some(Ordering::Less),
 							_ => Some(Ordering::Equal),
 						}
 					}
-					Part::First => match (a.first(), b.first()) {
-						(Some(a), Some(b)) => a.compare(b, path.next(), collate, numeric),
-						(Some(_), None) => Some(Ordering::Greater),
-						(None, Some(_)) => Some(Ordering::Less),
-						(_, _) => Some(Ordering::Equal),
-					},
-					Part::Last => match (a.last(), b.last()) {
-						(Some(a), Some(b)) => a.compare(b, path.next(), collate, numeric),
-						(Some(_), None) => Some(Ordering::Greater),
-						(None, Some(_)) => Some(Ordering::Less),
-						(_, _) => Some(Ordering::Equal),
-					},
-					Part::Index(i) => match (a.get(i.to_usize()), b.get(i.to_usize())) {
-						(Some(a), Some(b)) => a.compare(b, path.next(), collate, numeric),
-						(Some(_), None) => Some(Ordering::Greater),
-						(None, Some(_)) => Some(Ordering::Less),
-						(_, _) => Some(Ordering::Equal),
-					},
+					Part::First => {
+						println!("Value::compare: Comparing array first: {:?} and {:?}", a, b);
+						match (a.first(), b.first()) {
+							(Some(a), Some(b)) => a.compare(b, path.next(), collate, numeric),
+							(Some(_), None) => Some(Ordering::Greater),
+							(None, Some(_)) => Some(Ordering::Less),
+							(_, _) => Some(Ordering::Equal),
+						}
+					}
+					Part::Last => {
+						println!("Value::compare: Comparing array last: {:?} and {:?}", a, b);
+						match (a.last(), b.last()) {
+							(Some(a), Some(b)) => a.compare(b, path.next(), collate, numeric),
+							(Some(_), None) => Some(Ordering::Greater),
+							(None, Some(_)) => Some(Ordering::Less),
+							(_, _) => Some(Ordering::Equal),
+						}
+					}
+					Part::Index(i) => {
+						println!("Value::compare: Comparing array index: {:?} and {:?}", a, b);
+						match (a.get(i.to_usize()), b.get(i.to_usize())) {
+							(Some(a), Some(b)) => a.compare(b, path.next(), collate, numeric),
+							(Some(_), None) => Some(Ordering::Greater),
+							(None, Some(_)) => Some(Ordering::Less),
+							(_, _) => Some(Ordering::Equal),
+						}
+					}
 					_ => {
+						println!("Value::compare: Comparing array default: {:?} and {:?}", a, b);
 						for (a, b) in a.iter().zip(b.iter()) {
 							match a.compare(b, path, collate, numeric) {
 								Some(Ordering::Equal) => continue,
@@ -71,6 +98,7 @@ impl Value {
 								o => return o,
 							}
 						}
+						println!("Value::compare: Comparing array lengths: {:?} and {:?}", a.len(), b.len());
 						match (a.len(), b.len()) {
 							(a, b) if a > b => Some(Ordering::Greater),
 							(a, b) if a < b => Some(Ordering::Less),
@@ -79,16 +107,34 @@ impl Value {
 					}
 				},
 				// Ignore everything else
-				(a, b) => a.compare(b, path.next(), collate, numeric),
+				(a, b) => {
+					println!("Value::compare: Comparing default: {:?} and {:?}", a, b);
+					a.compare(b, path.next(), collate, numeric)
+				},
 			},
 			// No more parts so get the value
 			None => match (collate, numeric) {
-				(true, true) => self.natural_lexical_cmp(other),
-				(true, false) => self.lexical_cmp(other),
-				(false, true) => self.natural_cmp(other),
-				_ => self.partial_cmp(other),
+				(true, true) => {
+					println!("Value::compare: Comparing natural lexical: {:?} and {:?}", self, other);
+					self.natural_lexical_cmp(other)
+				},
+				(true, false) => {
+					println!("Value::compare: Comparing lexical: {:?} and {:?}", self, other);
+					self.lexical_cmp(other)
+				},
+				(false, true) => {
+					println!("Value::compare: Comparing natural: {:?} and {:?}", self, other);
+					self.natural_cmp(other)
+				},
+				_ => {
+					println!("Value::compare: Comparing partial: {:?} and {:?}", self, other);
+					self.partial_cmp(other)
+				},
 			},
-		}
+		};
+
+		println!("Value::compare: Result: {:?}", res);
+		res
 	}
 }
 
